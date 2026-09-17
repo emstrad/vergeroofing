@@ -17,13 +17,16 @@
     if (first) first.focus({ preventScroll: true })
   }
 
-  function setError(field, message) {
+  /* The row carries the state, matching the site's CSS, and the message itself
+     is the one the API returns for that field. */
+  function setError(field, invalid) {
     var box = form.querySelector('#err-' + field)
     if (!box) return
-    box.hidden = !message
+    var row = box.closest('.form-row')
+    if (row) row.classList.toggle('has-err', !!invalid)
     var input = form.querySelector('[name="' + field + '"]')
-    if (input) input.setAttribute('aria-invalid', message ? 'true' : 'false')
-    if (message) window.Verge.track('form_error', { field: field, step: String(current) })
+    if (input) input.setAttribute('aria-invalid', invalid ? 'true' : 'false')
+    if (invalid) window.Verge.track('form_error', { field: field, step: String(current) })
   }
 
   function value(name) {
@@ -55,6 +58,7 @@
   function checkStepThree() {
     var ok = true
     if (!value('propertyType')) { setError('propertyType', true); ok = false } else setError('propertyType', false)
+    if (!postcodeOk(value('postcode2'))) { setError('postcode2', true); ok = false } else setError('postcode2', false)
     if (!value('address1')) { setError('address1', true); ok = false } else setError('address1', false)
     if (!value('town')) { setError('town', true); ok = false } else setError('town', false)
     var email = value('email')
@@ -191,7 +195,7 @@
     steps.forEach(function (panel) { panel.hidden = true })
     var done = form.querySelector('[data-done]')
     var message = form.querySelector('[data-done-message]')
-    var text = 'We will reply today. Coming out to look is free, and your photos and fixed written quote follow within 24 hours of that visit.'
+    var text = 'We will reply today. Coming out to look is free, and your photos and fixed written quote follow within 48 hours of that visit.'
     if (failedFiles) {
       text += ' ' + failedFiles + (failedFiles === 1 ? ' photo' : ' photos') +
         ' did not upload. Reply to our message with it attached and we will add it.'
