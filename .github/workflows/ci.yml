@@ -1,0 +1,57 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: verge
+          POSTGRES_PASSWORD: verge
+          POSTGRES_DB: verge_test
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd pg_isready --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      TEST_DATABASE_URL: postgres://verge:verge@localhost:5432/verge_test
+      DATABASE_URL: postgres://verge:verge@localhost:5432/verge_test
+      IP_SALT: ci-salt
+    steps:
+      # persist-credentials: false, because checkout otherwise leaves its own
+      # token in the clone as http.https://github.com/.extraheader and git sends
+      # that in preference to any token in a push URL.
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm ci
+      - run: npm run migrate
+      # Applied a second time on purpose: a statement that is not safe to repeat
+      # fails here rather than on the next deploy.
+      - run: npm run migrate
+      - run: npm run lint:dashes
+      - run: npm test
+
+  migrate-production:
+    needs: test
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm ci
+      - run: npm run migrate
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}

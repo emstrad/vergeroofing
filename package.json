@@ -9,7 +9,7 @@
   "scripts": {
     "build:pages": "node scripts/build.js",
     "migrate": "node db/migrate.js",
-    "test": "node --test --test-concurrency=1 --experimental-test-module-mocks test/",
+    "test": "node --test --test-concurrency=1 --experimental-test-module-mocks 'test/**/*.test.js'",
     "lint:dashes": "node scripts/check-dashes.js"
   },
   "dependencies": {
