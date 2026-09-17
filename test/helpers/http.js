@@ -25,6 +25,9 @@ export function makeRes() {
     setHeader(key, value) {
       this.headers[key.toLowerCase()] = value
     },
+    getHeader(key) {
+      return this.headers[key.toLowerCase()]
+    },
     end(payload) {
       this.body = payload ? JSON.parse(payload) : null
     }
