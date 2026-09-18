@@ -30,7 +30,13 @@ export async function dbHealthy() {
 }
 
 export async function reset() {
-  await sql`TRUNCATE events, leads, rate_hits RESTART IDENTITY CASCADE`
+  await sql`TRUNCATE events, leads, rate_hits, jobs, job_payments,
+                     bank_transactions, bank_statements, bank_rules RESTART IDENTITY CASCADE`
+  // Settings are a single configured row rather than test data, so they are put
+  // back to the agreed defaults instead of being emptied.
+  await sql`UPDATE job_settings SET tax_percent = 20, lead_fee_percent = 15,
+            lead_fee_to = 'scott', partners = ARRAY['tom','steve','ben','scott'],
+            deposit_percent = NULL WHERE id = 1`
 }
 
 export async function close() {

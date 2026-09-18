@@ -102,3 +102,167 @@ CREATE TABLE IF NOT EXISTS rate_hits (
 );
 
 CREATE INDEX IF NOT EXISTS rate_hits_lookup_idx ON rate_hits (bucket, key, created_at DESC);
+
+-- ---------------------------------------------------------------------------
+-- The pipeline and the money
+-- ---------------------------------------------------------------------------
+
+-- Labels with no price. There is no rate card, because every job is quoted;
+-- the type exists so the jobs list can be filtered and reported by it.
+CREATE TABLE IF NOT EXISTS job_types (
+  key      text PRIMARY KEY,
+  label    text    NOT NULL,
+  position int     NOT NULL DEFAULT 0,
+  active   boolean NOT NULL DEFAULT true
+);
+
+INSERT INTO job_types (key, label, position) VALUES
+  ('leak-repair', 'Leak or repair', 1),
+  ('re-roof', 'Full re-roof', 2),
+  ('flat-roof', 'Flat roof', 3),
+  ('chimney-leadwork', 'Chimney and leadwork', 4),
+  ('guttering-fascias', 'Guttering and fascias', 5),
+  ('storm-damage', 'Storm damage', 6),
+  ('maintenance', 'Maintenance', 7),
+  ('commercial', 'Commercial', 8),
+  ('other', 'Other', 9)
+ON CONFLICT (key) DO NOTHING;
+
+-- One row, id 1. The rates a NEW job takes; an existing job keeps its own.
+CREATE TABLE IF NOT EXISTS job_settings (
+  id               int PRIMARY KEY DEFAULT 1 CHECK (id = 1),
+  tax_percent      numeric(5,2) NOT NULL DEFAULT 20,
+  lead_fee_percent numeric(5,2) NOT NULL DEFAULT 15,
+  lead_fee_to      text         NOT NULL DEFAULT 'scott',
+  partners         text[]       NOT NULL DEFAULT ARRAY['tom','steve','ben','scott'],
+  -- Null means the business has no standard deposit. Nothing derives a deposit
+  -- from the price: that is a fixed-price convention and it does not survive
+  -- contact with quoted work.
+  deposit_percent  numeric(5,2),
+  updated_at       timestamptz  NOT NULL DEFAULT now()
+);
+
+INSERT INTO job_settings (id) VALUES (1) ON CONFLICT (id) DO NOTHING;
+
+-- One row per piece of work, from quote through to completion. One table
+-- rather than a separate quotes table, so the client record, the photographs
+-- and the address stay attached all the way through and nothing moves when a
+-- quote is won.
+CREATE TABLE IF NOT EXISTS jobs (
+  id               bigserial PRIMARY KEY,
+  lead_id          bigint REFERENCES leads (id) ON DELETE SET NULL,
+  status           text NOT NULL DEFAULT 'quoted'
+                     CHECK (status IN ('quoted','booked','completed','declined','cancelled')),
+  job_type         text REFERENCES job_types (key),
+  customer_name    text,
+  phone            text,
+  email            text,
+  address1         text,
+  address2         text,
+  town             text,
+  postcode         text,
+  notes            text,
+  worker           text,
+
+  price_pence      bigint NOT NULL DEFAULT 0,
+  -- Null means not known yet, which the card says out loud rather than
+  -- treating as zero and reporting a margin nobody earned.
+  materials_pence  bigint,
+
+  quoted_on        date,
+  quote_expires_on date,
+  job_date         date,
+  completed_on     date,
+  -- From a short list, and the most valuable field in the database: without it
+  -- there is no way to tell a price problem from a timing problem.
+  declined_reason  text CHECK (declined_reason IN
+                     ('price','timing','went-elsewhere','no-longer-needed','no-reply','other')),
+
+  -- The rates the job was agreed at. Raising a percentage next month must not
+  -- silently rewrite what everyone earned last month.
+  tax_percent      numeric(5,2) NOT NULL DEFAULT 20,
+  lead_fee_percent numeric(5,2) NOT NULL DEFAULT 15,
+  lead_fee_to      text,
+  partners         text[] NOT NULL DEFAULT ARRAY['tom','steve','ben','scott'],
+
+  created_at       timestamptz NOT NULL DEFAULT now(),
+  updated_at       timestamptz NOT NULL DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS jobs_status_idx ON jobs (status, created_at DESC);
+CREATE INDEX IF NOT EXISTS jobs_date_idx ON jobs (job_date);
+CREATE INDEX IF NOT EXISTS jobs_lead_idx ON jobs (lead_id);
+
+-- Payments are a list, not two tick boxes: a quoted trade takes a deposit,
+-- sometimes a stage payment or two, then a balance, and the amounts are
+-- whatever was agreed rather than half the price. Paid in full is therefore a
+-- computed fact rather than a flag somebody remembers to set.
+CREATE TABLE IF NOT EXISTS job_payments (
+  id            bigserial PRIMARY KEY,
+  job_id        bigint NOT NULL REFERENCES jobs (id) ON DELETE CASCADE,
+  amount_pence  bigint NOT NULL,
+  paid_on       date   NOT NULL DEFAULT current_date,
+  label         text   NOT NULL DEFAULT 'payment'
+                  CHECK (label IN ('deposit','stage','balance','retention','payment')),
+  note          text,
+  -- Set when the row came from a matched bank line, so unmatching can remove
+  -- exactly what matching created and nothing a person typed.
+  bank_txn_id   bigint,
+  created_at    timestamptz NOT NULL DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS job_payments_job_idx ON job_payments (job_id, paid_on);
+CREATE UNIQUE INDEX IF NOT EXISTS job_payments_bank_idx
+  ON job_payments (bank_txn_id) WHERE bank_txn_id IS NOT NULL;
+
+-- ---------------------------------------------------------------------------
+-- Bank reconciliation
+-- ---------------------------------------------------------------------------
+
+CREATE TABLE IF NOT EXISTS bank_statements (
+  id          bigserial PRIMARY KEY,
+  filename    text NOT NULL,
+  rows_total  int  NOT NULL DEFAULT 0,
+  rows_new    int  NOT NULL DEFAULT 0,
+  uploaded_at timestamptz NOT NULL DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS bank_transactions (
+  id             bigserial PRIMARY KEY,
+  statement_id   bigint REFERENCES bank_statements (id) ON DELETE CASCADE,
+  -- The bank's own id where the export has one, otherwise date, amount,
+  -- description and running balance hashed together, so overlapping months
+  -- never double up.
+  fingerprint    text NOT NULL UNIQUE,
+  txn_date       date NOT NULL,
+  description    text NOT NULL,
+  -- Signed, and with any fee already folded in, so a line is the money that
+  -- actually moved.
+  amount_pence   bigint NOT NULL,
+  balance_pence  bigint,
+  category       text,
+  -- 'auto' or 'manual'. A choice made by hand is never overwritten by a rule
+  -- learned somewhere else.
+  category_kind  text CHECK (category_kind IN ('auto','manual')),
+  job_id         bigint REFERENCES jobs (id) ON DELETE SET NULL,
+  job_kind       text CHECK (job_kind IN ('auto','manual')),
+  -- Money out assigned to a job is a materials cost on that job.
+  is_materials   boolean NOT NULL DEFAULT false,
+  split_to       text[],
+  split_kind     text CHECK (split_kind IN ('auto','manual')),
+  created_at     timestamptz NOT NULL DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS bank_txn_date_idx ON bank_transactions (txn_date DESC);
+CREATE INDEX IF NOT EXISTS bank_txn_statement_idx ON bank_transactions (statement_id);
+CREATE INDEX IF NOT EXISTS bank_txn_job_idx ON bank_transactions (job_id);
+
+-- What the page has learned. The key is the description with its numbers
+-- stripped, so "TRAVIS PERKINS 1234" and "... 5678" share one rule.
+CREATE TABLE IF NOT EXISTS bank_rules (
+  key        text PRIMARY KEY,
+  category   text,
+  split_to   text[],
+  job_id     bigint REFERENCES jobs (id) ON DELETE SET NULL,
+  updated_at timestamptz NOT NULL DEFAULT now()
+);
