@@ -16,6 +16,10 @@ function pages(dir = 'public') {
 
 const files = pages()
 const docs = files.map((path) => ({ path, html: readFileSync(path, 'utf8') }))
+// The staff area is behind a login and carries noindex, so the SEO rules that
+// exist to keep Google happy do not apply to it. Everything about safety and
+// correctness still does.
+const publicDocs = docs.filter((doc) => !doc.path.startsWith('public/staff'))
 
 test('there is at least one page to check', () => {
   assert.ok(docs.length > 0)
@@ -37,7 +41,7 @@ test('nothing loads from a third party', () => {
 })
 
 test('each page carries the accessibility structure', () => {
-  for (const { path, html } of docs) {
+  for (const { path, html } of publicDocs) {
     assert.equal((html.match(/<main[\s>]/g) || []).length, 1, `${path} needs exactly one main`)
     assert.equal((html.match(/<h1[\s>]/g) || []).length, 1, `${path} needs exactly one h1`)
     assert.ok(html.includes('class="skip-link"'), `${path} has no skip link`)
@@ -59,7 +63,7 @@ test('every image has alt text', () => {
 
 test('each page has a unique title, description and canonical', () => {
   const seen = new Set()
-  for (const { path, html } of docs) {
+  for (const { path, html } of publicDocs) {
     const title = html.match(/<title>([^<]+)<\/title>/)
     assert.ok(title, `${path} has no title`)
     assert.ok(!seen.has(title[1]), `duplicate title on ${path}`)

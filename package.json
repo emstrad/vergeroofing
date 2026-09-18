@@ -10,7 +10,8 @@
     "build:pages": "node scripts/build.js",
     "migrate": "node db/migrate.js",
     "test": "node --test --test-concurrency=1 --experimental-test-module-mocks 'test/**/*.test.js'",
-    "lint:dashes": "node scripts/check-dashes.js"
+    "lint:dashes": "node scripts/check-dashes.js",
+    "dev": "node scripts/dev-server.js"
   },
   "dependencies": {
     "@neondatabase/serverless": "^0.10.4",

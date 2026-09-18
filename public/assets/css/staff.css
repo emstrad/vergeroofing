@@ -1,0 +1,107 @@
+/* Dark, dense, tuned for reading numbers. Shares the site's palette so the two
+   feel like one thing, but nothing else: this is a tool, not a page. */
+@font-face{
+  font-family:'Archivo';
+  font-style:normal;
+  font-weight:400 900;
+  font-display:swap;
+  src:url('/assets/fonts/archivo-latin.woff2') format('woff2');
+  unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+2000-206F,U+20AC,U+2122,U+2212,U+FEFF,U+FFFD;
+}
+
+*,*::before,*::after{box-sizing:border-box}
+:root{
+  --bg:#141414;--bg-2:#0d0d0d;--panel:#1c1c1c;--panel-2:#242424;
+  --line:rgba(217,217,217,.14);--line-strong:rgba(217,217,217,.26);
+  --ink:#F4581C;--ink-hi:#ff7038;--accent-soft:rgba(244,88,28,.13);
+  --text:#f6f5f4;--muted:#b9b6b2;--muted-2:#928e89;
+  --good:#5ec88a;--bad:#ff8080;--warn:#f3c969;
+}
+body{margin:0;background:var(--bg);color:var(--text);font-family:'Archivo',system-ui,sans-serif;font-size:14px;line-height:1.5}
+a{color:var(--ink-hi);text-decoration:none}
+button{font:inherit;cursor:pointer;border:0;background:none;color:inherit}
+h1,h2,h3{margin:0;line-height:1.15;letter-spacing:-.015em}
+h1{font-size:20px}
+h2{font-size:16px;margin-bottom:12px}
+h3{font-size:14px}
+input,select,textarea{background:var(--bg-2);border:1px solid var(--line-strong);border-radius:8px;color:var(--text);padding:8px 10px;font:inherit;width:100%}
+input:focus,select:focus,textarea:focus{outline:2px solid var(--ink-hi);outline-offset:1px;border-color:var(--ink)}
+:focus-visible{outline:2px solid var(--ink-hi);outline-offset:2px}
+.sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap}
+
+.topbar{position:sticky;top:0;z-index:10;display:flex;align-items:center;gap:18px;padding:12px 20px;background:var(--bg-2);border-bottom:1px solid var(--line)}
+.topbar .brand{font-weight:800;letter-spacing:.14em;text-transform:uppercase;font-size:12px;color:var(--ink)}
+.topbar nav{display:flex;gap:6px;flex-wrap:wrap}
+.topbar nav a{padding:7px 12px;border-radius:999px;color:var(--muted);font-size:12.5px;letter-spacing:.08em;text-transform:uppercase;font-weight:600}
+.topbar nav a[aria-current="page"]{background:var(--ink);color:#fff}
+.topbar .spacer{margin-left:auto}
+
+main{padding:20px;max-width:1500px;margin-inline:auto}
+section{margin-bottom:26px}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:16px}
+.grid{display:grid;gap:14px}
+.grid.cols-2{grid-template-columns:repeat(2,minmax(0,1fr))}
+.grid.cols-3{grid-template-columns:repeat(3,minmax(0,1fr))}
+.grid.cols-4{grid-template-columns:repeat(4,minmax(0,1fr))}
+@media (max-width:900px){.grid.cols-2,.grid.cols-3,.grid.cols-4{grid-template-columns:1fr}}
+
+.tile{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:14px 16px}
+.tile .label{font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--muted-2);font-weight:600}
+.tile .value{font-size:26px;font-weight:800;margin-top:6px;font-variant-numeric:tabular-nums}
+.tile .note{font-size:12px;color:var(--muted);margin-top:4px}
+
+.pills{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px}
+.pills button{padding:7px 14px;border-radius:999px;border:1px solid var(--line-strong);color:var(--muted);font-size:12px;letter-spacing:.08em;text-transform:uppercase;font-weight:600}
+.pills button[aria-pressed="true"]{background:var(--ink);color:#fff;border-color:var(--ink)}
+
+table{width:100%;border-collapse:collapse;font-variant-numeric:tabular-nums}
+th,td{text-align:left;padding:8px 10px;border-bottom:1px solid var(--line);vertical-align:top}
+th{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted-2);font-weight:600;white-space:nowrap}
+td.num,th.num{text-align:right}
+tbody tr:hover{background:var(--panel-2)}
+.scroll{overflow-x:auto}
+
+.chip{display:inline-block;padding:2px 8px;border-radius:999px;font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;border:1px solid var(--line-strong);color:var(--muted)}
+.chip.quoted{color:var(--warn);border-color:var(--warn)}
+.chip.booked{color:var(--ink-hi);border-color:var(--ink)}
+.chip.completed{color:var(--good);border-color:var(--good)}
+.chip.declined,.chip.cancelled{color:var(--bad);border-color:var(--bad)}
+.chip.owed{background:rgba(255,128,128,.15);color:var(--bad);border-color:var(--bad)}
+.chip.passed{color:var(--warn);border-color:var(--warn)}
+
+.btn{display:inline-flex;align-items:center;gap:8px;padding:9px 16px;border-radius:999px;background:var(--ink);color:#fff;font-weight:700;font-size:12.5px;letter-spacing:.08em;text-transform:uppercase}
+.btn.quiet{background:transparent;border:1px solid var(--line-strong);color:var(--text)}
+.btn.small{padding:5px 11px;font-size:11px}
+.btn[disabled]{opacity:.5;cursor:not-allowed}
+
+.bar{height:8px;border-radius:999px;background:var(--panel-2);overflow:hidden}
+.bar span{display:block;height:100%;background:var(--ink)}
+
+.good{color:var(--good)}
+.bad{color:var(--bad)}
+.muted{color:var(--muted)}
+.tiny{font-size:12px}
+
+dialog{background:var(--panel);color:var(--text);border:1px solid var(--line-strong);border-radius:14px;padding:0;width:min(760px,94vw);max-height:90vh}
+dialog::backdrop{background:rgba(0,0,0,.65)}
+dialog .head{display:flex;align-items:center;gap:12px;padding:16px;border-bottom:1px solid var(--line);position:sticky;top:0;background:var(--panel)}
+dialog .body{padding:16px;overflow-y:auto}
+dialog .foot{padding:14px 16px;border-top:1px solid var(--line);display:flex;gap:10px;flex-wrap:wrap}
+
+.kv{display:grid;grid-template-columns:150px 1fr;gap:6px 14px;font-size:13px}
+.kv dt{color:var(--muted-2);font-size:11px;letter-spacing:.12em;text-transform:uppercase;padding-top:2px}
+.kv dd{margin:0}
+
+.login{max-width:360px;margin:16vh auto;padding:24px;background:var(--panel);border:1px solid var(--line);border-radius:14px}
+.login h1{margin-bottom:6px}
+.login p{color:var(--muted);margin:0 0 18px}
+.login .err{color:var(--bad);min-height:20px;font-size:13px}
+.login button{width:100%;justify-content:center;margin-top:14px}
+
+.form-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+@media (max-width:700px){.form-grid{grid-template-columns:1fr}}
+.form-grid label{display:block;font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted-2);margin-bottom:5px;font-weight:600}
+.wide{grid-column:1 / -1}
+.waterfall{font-variant-numeric:tabular-nums;font-size:13px}
+.waterfall div{display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px dashed var(--line)}
+.waterfall .total{font-weight:800;border-bottom:0}
