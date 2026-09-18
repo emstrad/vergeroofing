@@ -1,0 +1,6 @@
+User-agent: *
+Allow: /
+Disallow: /api/
+Disallow: /staff
+
+Sitemap: https://vergeroofing.com/sitemap.xml
