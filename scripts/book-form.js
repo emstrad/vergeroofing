@@ -81,8 +81,8 @@ export function renderQuoteForm() {
           <input id="q-files" name="files" type="file" multiple
                  accept="image/jpeg,image/png,image/heic,image/webp,application/pdf" />
           <p class="hint">
-            A photo of the roof often turns a site visit into a phone quote, and
-            always makes the visit shorter. A previous report or quote is useful too.
+            A photo of the roof often means we can price it over the phone, and it
+            always makes us quicker when we do come out. A previous quote is useful too.
           </p>
           <p class="upload-status" data-upload-status aria-live="polite"></p>
         </div>

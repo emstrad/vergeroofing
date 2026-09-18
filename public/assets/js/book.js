@@ -195,7 +195,7 @@
     steps.forEach(function (panel) { panel.hidden = true })
     var done = form.querySelector('[data-done]')
     var message = form.querySelector('[data-done-message]')
-    var text = 'We will reply today. Coming out to look is free, and your photos and fixed written quote follow within 48 hours of that visit.'
+    var text = 'We will reply today. Coming out to look costs you nothing, and your photos and fixed written price follow within 48 hours.'
     if (failedFiles) {
       text += ' ' + failedFiles + (failedFiles === 1 ? ' photo' : ' photos') +
         ' did not upload. Reply to our message with it attached and we will add it.'
