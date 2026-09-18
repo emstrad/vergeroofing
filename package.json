@@ -11,7 +11,8 @@
     "migrate": "node db/migrate.js",
     "test": "node --test --test-concurrency=1 --experimental-test-module-mocks 'test/**/*.test.js'",
     "lint:dashes": "node scripts/check-dashes.js",
-    "dev": "node scripts/dev-server.js"
+    "dev": "node scripts/dev-server.js",
+    "build:check": "node scripts/build.js --check"
   },
   "dependencies": {
     "@neondatabase/serverless": "^0.10.4",

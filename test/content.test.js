@@ -80,3 +80,34 @@ test('every service page links to a guide, and every guide back to a page', () =
     assert.ok(entry.page.related && entry.page.related.length, `${entry.path} links nowhere`)
   }
 })
+
+// Every card on every shipped page has to trace back to a real entry in
+// content/reviews.js. This is the test that fails on an invented testimonial.
+test('every review card on a shipped page traces back to a real entry', async () => {
+  const { reviews, REVIEW_FLOOR } = await import('../content/reviews.js')
+  const { readdirSync, statSync } = await import('node:fs')
+
+  function pages(dir = 'public') {
+    const out = []
+    for (const name of readdirSync(dir)) {
+      const path = dir + '/' + name
+      if (statSync(path).isDirectory()) out.push(...pages(path))
+      else if (name.endsWith('.html')) out.push(path)
+    }
+    return out
+  }
+
+  for (const path of pages()) {
+    const html = readFileSync(path, 'utf8')
+    const cards = [...html.matchAll(/<article class="review">\s*<p>([\s\S]*?)<\/p>/g)].map((match) => match[1].trim())
+    for (const card of cards) {
+      assert.ok(
+        reviews.some((review) => review.text.trim() === card.replace(/&quot;/g, '"').replace(/&amp;/g, '&')),
+        `${path} shows a review that is not in content/reviews.js`
+      )
+    }
+    if (reviews.length < REVIEW_FLOOR) {
+      assert.equal(cards.length, 0, `${path} ships review cards while below the floor of ${REVIEW_FLOOR}`)
+    }
+  }
+})

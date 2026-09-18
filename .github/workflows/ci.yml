@@ -38,6 +38,9 @@ jobs:
       # fails here rather than on the next deploy.
       - run: npm run migrate
       - run: npm run lint:dashes
+      # Fails when a committed page is not what the generator produces now, so
+      # a stale page fails here rather than shipping.
+      - run: npm run build:check
       - run: npm test
 
   migrate-production:

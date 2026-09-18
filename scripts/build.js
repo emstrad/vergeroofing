@@ -9,6 +9,7 @@ import { fillMarkers } from './lib/marker.js'
 import { stampAssets } from './lib/stamp.js'
 import { faqSchema } from './lib/schema.js'
 import { collect, renderAll } from './lib/pages.js'
+import { reviewsSection, reviewCount } from './lib/reviews.js'
 import { sitemap, robots, llms } from './lib/sitemap.js'
 
 const PUBLIC = 'public'
@@ -37,9 +38,10 @@ function phoneBlocks() {
   }
 }
 
-function buildPage(path, form, phones) {
+function buildPage(path, form, phones, reviews) {
   let html = readFileSync(path, 'utf8')
   html = fillMarkers(html, 'QUOTE-FORM', form)
+  html = fillMarkers(html, 'REVIEWS', reviews)
   html = fillMarkers(html, 'PHONE_NAV', phones.nav)
   html = fillMarkers(html, 'PHONE_CLOSING', phones.closing)
   html = fillMarkers(html, 'PHONE_FOOTER', phones.footer)
@@ -59,6 +61,8 @@ async function main() {
   const check = process.argv.includes('--check')
   const form = renderQuoteForm()
   const phones = phoneBlocks()
+  // Printed at the end, so a site below the review floor is not a surprise.
+  const reviews = reviewsSection()
   const stale = []
 
   // Content pages first, so the marker and stamping passes below run over what
@@ -86,7 +90,7 @@ async function main() {
 
   for (const path of pages()) {
     const current = readFileSync(path, 'utf8')
-    const built = buildPage(path, form, phones)
+    const built = buildPage(path, form, phones, reviews)
     if (built === current) continue
     if (check) stale.push(path)
     else writeFileSync(path, built)
@@ -100,6 +104,9 @@ async function main() {
 
   if (!site.phone) {
     console.log('note: site.phone is not set, so every call to action ships without a number')
+  }
+  if (reviewCount() < 5) {
+    console.log(`note: ${reviewCount()} reviews on file, so the review section ships empty and hidden`)
   }
   console.log(check ? 'pages are current' : `built ${pages().length} page(s), ${generated.length} of them generated`)
 }
